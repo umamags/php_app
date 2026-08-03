@@ -1,0 +1,57 @@
+name: Deploy to GoDaddy
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy to GoDaddy
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          cd /home/fbmerf3ynq50/public_html/php_app
+
+          # Check if directory exists and is a git repo
+          if [ -d .git ]; then
+            # Update existing repository
+            git pull origin master || git pull origin main
+          else
+            # Clone the repository (adjust the repo URL as needed)
+            cd /home/fbmerf3ynq50/public_html
+            rm -rf php_app
+            git clone https://github.com/${{ github.repository }}.git php_app
+            cd php_app
+          fi
+
+          # Set proper permissions
+          chmod -R 755 .
+          chmod -R 755 photos/
+
+          # Ensure data folder exists with write permissions
+          mkdir -p data
+          chmod 755 data
+
+          echo "Deployment completed at $(date)"
+          EOF
+
+      - name: Verify deployment
+        run: |
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          echo "App deployed at: /home/fbmerf3ynq50/public_html/php_app"
+          ls -la /home/fbmerf3ynq50/public_html/php_app
+          EOF
