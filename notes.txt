@@ -1,0 +1,10 @@
+php -S localhost:8000
+
+curl -X POST \
+  -F "photo=@./images/albatross_2_5IYqAH4ZTrM.jpg" \
+  -F "dataFolder=data" \
+  -F "state=Tamilnadu" \
+  -F "city=chennai" \
+  -F "temple=Partasarathi_Temple" \
+  -F "description=This is a wonderful temple" \
+  http://localhost:8002/photos/upload.php
