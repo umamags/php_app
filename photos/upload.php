@@ -1,6 +1,17 @@
 <?php
-// CORS headers
-header('Access-Control-Allow-Origin: *');
+// CORS headers - allow specific origins
+$allowedOrigins = [
+    'https://umamags.github.io',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175'
+];
+
+$requestOrigin = $_SERVER['HTTP_ORIGIN'] ?? null;
+if (in_array($requestOrigin, $allowedOrigins)) {
+    header('Access-Control-Allow-Origin: ' . $requestOrigin);
+}
+
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Content-Type: application/json');
