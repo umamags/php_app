@@ -24,8 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 $timestamp = date('Y-m-d H:i:s');
 
+// Hardcoded data folder path
+$dataFolder = '../../temples_data';
+
 // Validate required parameters
-$dataFolder = $_POST['dataFolder'] ?? null;
 $state = $_POST['state'] ?? null;
 $city = $_POST['city'] ?? null;
 $temple = $_POST['temple'] ?? null;
@@ -40,24 +42,26 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-if (!$dataFolder || !$state || !$city || !$temple) {
+if (!$state || !$city || !$temple) {
     http_response_code(400);
     echo json_encode([
-        'error' => 'Missing required parameters: dataFolder, state, city, temple',
+        'error' => 'Missing required parameters: state, city, temple',
         'timestamp' => $timestamp
     ]);
     exit;
 }
 
-// Create the directory structure
+// Create folder structure: dataFolder/state/city/temple
 $baseDir = __DIR__ . '/' . $dataFolder;
-$templeDir = $baseDir . '/' . $state . '/' . $city . '/' . $temple;
+$stateDir = $baseDir . '/' . $state;
+$cityDir = $stateDir . '/' . $city;
+$templeDir = $cityDir . '/' . $temple;
 
 if (!is_dir($templeDir)) {
     if (!mkdir($templeDir, 0755, true)) {
         http_response_code(500);
         echo json_encode([
-            'error' => 'Failed to create directory structure',
+            'error' => 'Failed to create folder structure',
             'attempted_path' => $templeDir,
             'timestamp' => $timestamp
         ]);
@@ -68,15 +72,35 @@ if (!is_dir($templeDir)) {
 $response = [
     'message' => 'Data saved successfully',
     'timestamp' => $timestamp,
-    'path' => $templeDir,
+    'folder' => $templeDir,
     'files' => []
 ];
 
 // Handle image upload (optional)
-if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
+if (isset($_FILES['photo'])) {
+    if ($_FILES['photo']['error'] !== UPLOAD_ERR_OK) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => 'File upload error: ' . $_FILES['photo']['error'],
+            'timestamp' => $timestamp
+        ]);
+        exit;
+    }
+
     $file = $_FILES['photo'];
     $filename = $file['name'];
     $tmpPath = $file['tmp_name'];
+
+    if (!file_exists($tmpPath)) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => 'Temporary file does not exist',
+            'tmpPath' => $tmpPath,
+            'timestamp' => $timestamp
+        ]);
+        exit;
+    }
+
     $fileType = mime_content_type($tmpPath);
 
     $allowedTypes = ['image/jpeg', 'image/png'];
@@ -90,28 +114,36 @@ if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
         exit;
     }
 
-    // Handle filename conflicts by renaming
     $destination = $templeDir . '/' . $filename;
-    $counter = 1;
-    $pathInfo = pathinfo($filename);
 
-    while (file_exists($destination)) {
-        $newFilename = $pathInfo['filename'] . '_' . $counter . '.' . $pathInfo['extension'];
-        $destination = $templeDir . '/' . $newFilename;
-        $counter++;
+    // Check if destination folder is writable
+    if (!is_writable($templeDir)) {
+        http_response_code(500);
+        echo json_encode([
+            'error' => 'Destination folder is not writable',
+            'folder' => $templeDir,
+            'permissions' => substr(sprintf('%o', fileperms($templeDir)), -4),
+            'timestamp' => $timestamp
+        ]);
+        exit;
     }
 
     if (move_uploaded_file($tmpPath, $destination)) {
         $response['files']['image'] = [
             'original_name' => $filename,
-            'saved_name' => basename($destination),
+            'saved_name' => $filename,
             'size' => filesize($destination),
             'full_path' => $destination
         ];
     } else {
         http_response_code(500);
         echo json_encode([
-            'error' => 'Failed to move uploaded file',
+            'error' => 'Failed to move uploaded file to destination',
+            'source' => $tmpPath,
+            'destination' => $destination,
+            'tmpExists' => file_exists($tmpPath),
+            'destDirExists' => is_dir($templeDir),
+            'destDirWritable' => is_writable($templeDir),
             'timestamp' => $timestamp
         ]);
         exit;
@@ -121,16 +153,10 @@ if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
 // Handle description (optional)
 if (!empty($description)) {
     $descriptionFile = $templeDir . '/description.md';
-    $counter = 1;
-
-    while (file_exists($descriptionFile)) {
-        $descriptionFile = $templeDir . '/description_' . $counter . '.md';
-        $counter++;
-    }
 
     if (file_put_contents($descriptionFile, $description)) {
         $response['files']['description'] = [
-            'filename' => basename($descriptionFile),
+            'filename' => 'description.md',
             'size' => strlen($description),
             'full_path' => $descriptionFile
         ];

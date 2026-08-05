@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Results</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 600px;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .success-icon {
+            text-align: center;
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .response-section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 30px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .response-section pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 13px;
+            color: #333;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .file-list {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            border-radius: 4px;
+        }
+
+        .file-list h3 {
+            color: #1976D2;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .file-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 3px;
+            font-size: 13px;
+            border-left: 3px solid #2196F3;
+        }
+
+        .file-item .label {
+            color: #666;
+            font-weight: 600;
+        }
+
+        .file-item .value {
+            color: #333;
+            word-break: break-all;
+            margin-top: 3px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e9ecef;
+            color: #333;
+            flex: 1;
+        }
+
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+
+        .error {
+            color: #721c24;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .timestamp {
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✓</div>
+        <h1>Upload Successful!</h1>
+
+        <div id="content"></div>
+
+        <div class="buttons">
+            <button class="btn-primary" onclick="goToUpload()">Create another?</button>
+            <button class="btn-secondary" onclick="goHome()">Home</button>
+        </div>
+
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <script>
+        function displayResults() {
+            const contentDiv = document.getElementById('content');
+            const timestampDiv = document.getElementById('timestamp');
+
+            try {
+                const response = sessionStorage.getItem('uploadResponse');
+
+                if (!response) {
+                    contentDiv.innerHTML = '<div class="error">No upload data found. Please upload again.</div>';
+                    return;
+                }
+
+                const data = JSON.parse(response);
+
+                // Check if it's an error response
+                if (data.error) {
+                    contentDiv.innerHTML = `<div class="error"><strong>Error:</strong> ${data.error}</div>`;
+                    return;
+                }
+
+                // Display JSON response
+                let html = '<div class="response-section"><pre>' + JSON.stringify(data, null, 2) + '</pre></div>';
+
+                // Display file list if available
+                if (data.files && Object.keys(data.files).length > 0) {
+                    html += '<div class="file-list"><h3>📁 Files Saved</h3>';
+
+                    if (data.files.image) {
+                        const img = data.files.image;
+                        html += `
+                            <div class="file-item">
+                                <div class="label">🖼️ Image</div>
+                                <div class="value"><strong>${img.saved_name}</strong></div>
+                                <div class="value">Size: ${(img.size / 1024).toFixed(2)} KB</div>
+                            </div>
+                        `;
+                    }
+
+                    if (data.files.description) {
+                        const desc = data.files.description;
+                        html += `
+                            <div class="file-item">
+                                <div class="label">📝 Description</div>
+                                <div class="value"><strong>${desc.filename}</strong></div>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                }
+
+                contentDiv.innerHTML = html;
+                timestampDiv.textContent = `Uploaded at: ${data.timestamp}`;
+
+                // Clear sessionStorage after displaying
+                sessionStorage.removeItem('uploadResponse');
+
+            } catch (error) {
+                contentDiv.innerHTML = `<div class="error"><strong>Error parsing response:</strong> ${error.message}</div>`;
+            }
+        }
+
+        function goToUpload() {
+            window.location.href = './index.html';
+        }
+
+        function goHome() {
+            window.location.href = '../';
+        }
+
+        // Display results when page loads
+        displayResults();
+    </script>
+</body>
+</html>
