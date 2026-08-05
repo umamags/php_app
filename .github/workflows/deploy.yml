@@ -26,25 +26,14 @@ jobs:
           ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
           cd /home/fbmerf3ynq50/public_html/php_app
 
-          # Check if directory exists and is a git repo
-          if [ -d .git ]; then
-            # Update existing repository
-            git pull origin master || git pull origin main
-          else
-            # Clone the repository (adjust the repo URL as needed)
-            cd /home/fbmerf3ynq50/public_html
-            rm -rf php_app
-            git clone https://github.com/${{ github.repository }}.git php_app
-            cd php_app
-          fi
+          # Clone the repository (adjust the repo URL as needed)
+          cd /home/fbmerf3ynq50/public_html
+          rm -rf php_app
+          git clone https://github.com/${{ github.repository }}.git php_app
+          cd php_app
 
           # Set proper permissions
           chmod -R 755 .
-          chmod -R 755 photos/
-
-          # Ensure data folder exists with write permissions
-          mkdir -p data
-          chmod 755 data
 
           echo "Deployment completed at $(date)"
           EOF
