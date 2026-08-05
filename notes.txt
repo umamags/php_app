@@ -8,3 +8,5 @@ curl -X POST \
   -F "temple=Partasarathi_Temple" \
   -F "description=This is a wonderful temple" \
   http://localhost:8002/photos/upload.php
+
+Changed
