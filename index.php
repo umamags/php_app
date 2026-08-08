@@ -13,14 +13,6 @@ switch ($path) {
         ]);
         break;
 
-    case '/php_app/hello':
-        echo json_encode([
-            'message' => 'Hello',
-            'path' => $path,
-            'timestamp' => $timestamp
-        ]);
-        break;
-
     default:
         http_response_code(404);
         echo json_encode([
