@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $timestamp = date('Y-m-d H:i:s');
 
 // Hardcoded data folder path
-$dataFolder = '../../temples_data';
+$dataFolder = '../../data/temples';
 
 // Validate required parameters
 $state = $_POST['state'] ?? null;
