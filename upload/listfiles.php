@@ -7,6 +7,9 @@ if (!isset($_GET['folder'])) {
 
 $folder = $_GET['folder'];
 
+// Trim and remove trailing slashes
+$folder = trim($folder, '/');
+
 // Validate folder parameter to prevent directory traversal attacks
 if (empty($folder) || strpos($folder, '..') !== false) {
     http_response_code(400);
@@ -15,18 +18,20 @@ if (empty($folder) || strpos($folder, '..') !== false) {
 
 // Construct the full path
 $basePath = realpath(dirname(dirname(__DIR__)) . '/data');
-$requestedPath = realpath(dirname(dirname(__DIR__)) . '/data/' . $folder);
+$fullPath = dirname(dirname(__DIR__)) . '/data/' . $folder;
+
+// Resolve the path and verify it exists
+if (!file_exists($fullPath) || !is_dir($fullPath)) {
+    http_response_code(404);
+    die(json_encode(['error' => 'Folder not found']));
+}
+
+$requestedPath = realpath($fullPath);
 
 // Verify the requested path is within the data directory
 if ($requestedPath === false || strpos($requestedPath, $basePath) !== 0) {
     http_response_code(400);
     die(json_encode(['error' => 'Invalid folder path or folder does not exist']));
-}
-
-// Check if the folder exists and is a directory
-if (!is_dir($requestedPath)) {
-    http_response_code(404);
-    die(json_encode(['error' => 'Folder not found']));
 }
 
 // Recursively list all files
