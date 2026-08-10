@@ -10,6 +10,9 @@ $folder = $_GET['folder'];
 // Trim and remove trailing slashes
 $folder = trim($folder, '/');
 
+// Normalize path - remove multiple consecutive slashes
+$folder = preg_replace('#/+#', '/', $folder);
+
 // Validate folder parameter to prevent directory traversal attacks
 if (empty($folder) || strpos($folder, '..') !== false) {
     http_response_code(400);
@@ -54,6 +57,12 @@ foreach ($iterator as $fileinfo) {
 
 header('Content-Type: application/json');
 echo json_encode([
+    'debug' => [
+        'requested_url' => $_SERVER['REQUEST_URI'],
+        'folder_parameter' => $folder,
+        'resolved_path' => $requestedPath,
+        'base_path' => $basePath
+    ],
     'folder' => $folder,
     'files' => $files,
     'count' => count($files)
